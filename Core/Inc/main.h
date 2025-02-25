@@ -71,8 +71,6 @@ void Error_Handler(void);
 #define CTRL_DWN_GPIO_Port GPIOA
 #define SWITCH_Pin GPIO_PIN_5
 #define SWITCH_GPIO_Port GPIOA
-#define BUZZER_Pin GPIO_PIN_7
-#define BUZZER_GPIO_Port GPIOA
 #define LED_Pin GPIO_PIN_9
 #define LED_GPIO_Port GPIOA
 
