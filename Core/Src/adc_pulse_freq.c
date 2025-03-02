@@ -1,65 +1,75 @@
-/**
- * @file adc_pulse_freq.c
- * @brief Measure pulse frequency on ADC_IN0 with configurable threshold.
- *
- * This library uses ADC and Timer to measure the frequency of pulses
- * on ADC_IN0. A configurable threshold defines when the signal is considered high.
- */
-
 #include "adc_pulse_freq.h"
 
+FrequencyMeter_t freq_meter;
+
 /**
- * @brief Initialize ADC and Timer for pulse frequency measurement.
- *
- * @param dev Pointer to ADC frequency measurement device structure.
+ * @brief Initializes the ADC for signal sampling.
  */
-void ADC_PulseFreq_Init(ADC_PulseFreq_t *dev) {
+void ADC_Init(void) {
+    __HAL_RCC_ADC1_CLK_ENABLE();
 
-	// Configure ADC (single conversion mode, channel 0)
-	dev->adc->CHSELR = dev->channel;
-	dev->adc->CFGR1 &= ~ADC_CFGR1_CONT; // Single conversion mode
-	dev->adc->SMPR |= ADC_SMPR_SMP_2;   // Sampling time selection
-	dev->adc->CR |= ADC_CR_ADEN;        // Enable ADC
-	while (!(ADC1->ISR & ADC_ISR_ADRDY))
-		; // Wait for ADC ready
+    freq_meter.hadc.Instance = ADC1;
+    freq_meter.hadc.Init.Resolution = ADC_RESOLUTION_12B;
+    freq_meter.hadc.Init.ContinuousConvMode = ENABLE;
+    freq_meter.hadc.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+    freq_meter.hadc.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+    freq_meter.hadc.Init.ScanConvMode = DISABLE;
 
-	// Configure Timer (input capture mode)
-	dev->tim->PSC = SystemCoreClock / 1000000 - 1; // Prescaler for 1us time base
-	dev->tim->ARR = 0xFFFF; // Max auto-reload value
-	dev->tim->CCMR1 |= TIM_CCMR1_CC1S_0; // Set CH1 as input
-	dev->tim->CCER |= TIM_CCER_CC1E; // Enable capture
-	dev->tim->CR1 |= TIM_CR1_CEN; // Start timer
+    HAL_ADC_Init(&freq_meter.hadc);
+
+    ADC_ChannelConfTypeDef sConfig = {0};
+    sConfig.Channel = ADC_CHANNEL_0;
+    sConfig.Rank = 1;
+    sConfig.SamplingTime = ADC_SAMPLETIME_55CYCLES_5;
+
+    HAL_ADC_ConfigChannel(&freq_meter.hadc, &sConfig);
+    HAL_ADC_Start_IT(&freq_meter.hadc);
 }
 
 /**
- * @brief Measure pulse frequency.
- *
- * @param dev Pointer to ADC frequency measurement device structure.
- * @return Measured frequency in Hz.
+ * @brief Initializes the timer for timestamping edges.
  */
-uint32_t ADC_PulseFreq_Measure(ADC_PulseFreq_t *dev) {
-	uint32_t lastTime = 0, currentTime = 0;
-	uint32_t pulseCount = 0;
-	uint32_t timeout = 1000000; // Timeout counter
+void TIM_Init(void) {
+    __HAL_RCC_TIM3_CLK_ENABLE();
+    freq_meter.htim.Instance = TIM3;
+    freq_meter.htim.Init.Prescaler = (SystemCoreClock / 1000000) - 1; // 1 µs
+    freq_meter.htim.Init.CounterMode = TIM_COUNTERMODE_UP;
+    freq_meter.htim.Init.Period = 0xFFFFFFFF;
 
-	while (pulseCount < 2 && timeout--) {
-		// Start ADC conversion
-		dev->adc->CR |= ADC_CR_ADSTART;
-		while (!(dev->adc->ISR & ADC_ISR_EOC))
-			; // Wait for conversion complete
-		uint16_t adcValue = dev->adc->DR;
+    HAL_TIM_Base_Init(&freq_meter.htim);
+    HAL_TIM_Base_Start(&freq_meter.htim);
+}
 
-		// Check threshold condition
-		if (adcValue > dev->threshold) {
-			currentTime = dev->tim->CNT;
-			if (pulseCount > 0) {
-				dev->freq = 1000000 / (currentTime - lastTime); // Calculate frequency in Hz
-				return dev->freq;
-			}
-			lastTime = currentTime;
-			pulseCount++;
-		}
-	}
-	dev->freq = 0;
-	return dev->freq; // Return 0 if no valid measurement
+/**
+ * @brief ADC conversion complete callback.
+ * @param hadc ADC handle pointer.
+ */
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
+    if (hadc->Instance == ADC1) {
+        uint32_t value = HAL_ADC_GetValue(hadc);
+        uint32_t current_time = __HAL_TIM_GET_COUNTER(&freq_meter.htim);
+
+        if (value >= freq_meter.threshold) {
+            if (freq_meter.last_time != 0) {
+                freq_meter.frequency = 1000000 / (current_time - freq_meter.last_time);
+            }
+            freq_meter.last_time = current_time;
+        }
+
+        HAL_ADC_Start_IT(hadc);
+    }
+}
+
+/**
+ * @brief Sets the threshold for frequency measurement.
+ * @param threshold ADC value threshold.
+ */
+void SetThreshold(uint32_t threshold) {
+    freq_meter.threshold = threshold;
+}
+
+void FREQ_InitAll(void) {
+    TIM_Init();
+    ADC_Init();
+    SetThreshold(2048);
 }

@@ -11,29 +11,16 @@
 #include "main.h"
 
 /**
- * @brief ADC pulse frequency measurement structure.
+ * @brief Structure for frequency measurement.
  */
 typedef struct {
-	uint16_t threshold; /**< ADC threshold for pulse detection */
-	TIM_TypeDef *tim;
-	ADC_TypeDef *adc;
-	uint32_t channel;
-	uint32_t freq;
-} ADC_PulseFreq_t;
+    ADC_HandleTypeDef hadc;
+    TIM_HandleTypeDef htim;
+    uint32_t threshold;
+    uint32_t last_time;
+    uint32_t frequency;
+} FrequencyMeter_t;
 
-/**
- * @brief Initialize ADC and Timer for pulse frequency measurement.
- *
- * @param dev Pointer to ADC frequency measurement device structure.
- */
-void ADC_PulseFreq_Init(ADC_PulseFreq_t *dev);
-
-/**
- * @brief Measure pulse frequency.
- *
- * @param dev Pointer to ADC frequency measurement device structure.
- * @return Measured frequency in Hz.
- */
-uint32_t ADC_PulseFreq_Measure(ADC_PulseFreq_t *dev);
+void FREQ_InitAll(void);
 
 #endif // ADC_PULSE_FREQ_H
