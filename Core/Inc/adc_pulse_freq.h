@@ -16,9 +16,13 @@
 typedef struct {
     ADC_HandleTypeDef hadc;
     TIM_HandleTypeDef htim;
-    uint32_t threshold;
+    uint32_t threshold_high;
+    uint32_t threshold_low;
     uint32_t last_time;
     uint32_t frequency;
+    uint8_t triggered;
+    uint32_t timeout;
+
 } FrequencyMeter_t;
 
 void FREQ_InitAll(void);
