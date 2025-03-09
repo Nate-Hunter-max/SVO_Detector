@@ -6,7 +6,6 @@ FrequencyMeter_t *_freq_meter;
  * @brief Initializes the ADC & TIM for signal sampling.
  */
 void FREQ_Init(FrequencyMeter_t *freq_meter) {
-
 	freq_meter->hadc->Init.Resolution = ADC_RESOLUTION_8B;
 	freq_meter->hadc->Init.ContinuousConvMode = ENABLE;
 	freq_meter->hadc->Init.ExternalTrigConv = ADC_SOFTWARE_START;
