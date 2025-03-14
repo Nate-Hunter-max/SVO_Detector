@@ -16,8 +16,8 @@ extern TIM_HandleTypeDef htim1;
 #define IS_PRESS(GPIOx, GPIO_Pin)   ((GPIOx->IDR & GPIO_Pin) ? 0 : 1)
 
 #define STOP_SEARCH() do { \
-    HAL_GPIO_WritePin(CTRL_UP_GPIO_Port, CTRL_UP_Pin, GPIO_PIN_RESET); \
-    HAL_GPIO_WritePin(CTRL_DWN_GPIO_Port, CTRL_DWN_Pin, GPIO_PIN_RESET); \
+    HAL_GPIO_WritePin(CTRL_UP_GPIO_Port, CTRL_UP_Pin, GPIO_PIN_SET); \
+    HAL_GPIO_WritePin(CTRL_DWN_GPIO_Port, CTRL_DWN_Pin, GPIO_PIN_SET); \
 } while(0)
 
 #define IS_CHANNEL_FOUND() (((uint8_t*)freq.frequency->data)[0] > FREQ_CH_MIN && \
@@ -80,9 +80,9 @@ static inline void search_up_state(void) {
 
 	// Generate 500 ms pulse every second
 	if (HAL_GetTick() - lastTick >= CHANNEL_DELAY) {
-		HAL_GPIO_WritePin(CTRL_UP_GPIO_Port, CTRL_UP_Pin, GPIO_PIN_SET);
-		HAL_Delay(500);
 		HAL_GPIO_WritePin(CTRL_UP_GPIO_Port, CTRL_UP_Pin, GPIO_PIN_RESET);
+		HAL_Delay(500);
+		HAL_GPIO_WritePin(CTRL_UP_GPIO_Port, CTRL_UP_Pin, GPIO_PIN_SET);
 		lastTick = HAL_GetTick();
 	}
 
@@ -102,9 +102,9 @@ static inline void search_down_state(void) {
 
 	// Generate 500 ms pulse every second
 	if (HAL_GetTick() - lastTick >= CHANNEL_DELAY) {
-		HAL_GPIO_WritePin(CTRL_DWN_GPIO_Port, CTRL_DWN_Pin, GPIO_PIN_SET);
-		HAL_Delay(500);
 		HAL_GPIO_WritePin(CTRL_DWN_GPIO_Port, CTRL_DWN_Pin, GPIO_PIN_RESET);
+		HAL_Delay(500);
+		HAL_GPIO_WritePin(CTRL_DWN_GPIO_Port, CTRL_DWN_Pin, GPIO_PIN_SET);
 		lastTick = HAL_GetTick();
 	}
 

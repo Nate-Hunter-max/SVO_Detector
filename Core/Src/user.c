@@ -21,7 +21,6 @@ void USER_Init() {
 	freq._timeout = 1e3;
 	FREQ_Init(&freq);
 	FREQ_Start(&freq);
-
 	FSM_Init();
 }
 

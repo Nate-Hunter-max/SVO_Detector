@@ -346,7 +346,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, CTRL_UP_Pin|CTRL_DWN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, CTRL_UP_Pin|CTRL_DWN_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pins : BTN_P_Pin BTN_M_Pin */
   GPIO_InitStruct.Pin = BTN_P_Pin|BTN_M_Pin;
