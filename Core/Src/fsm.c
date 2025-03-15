@@ -5,6 +5,7 @@
 
 #include "fsm.h"
 #include "adc_pulse_freq.h"
+#include <stdbool.h>
 
 extern FrequencyMeter_t freq;
 extern TIM_HandleTypeDef htim1;
@@ -12,6 +13,7 @@ extern TIM_HandleTypeDef htim1;
 #define CHANNEL_DELAY 1000
 #define FREQ_CH_MIN 10
 #define FREQ_CH_MAX 20
+#define FREQ_CH_THR 10
 
 #define IS_PRESS(GPIOx, GPIO_Pin)   ((GPIOx->IDR & GPIO_Pin) ? 0 : 1)
 
@@ -19,9 +21,6 @@ extern TIM_HandleTypeDef htim1;
     HAL_GPIO_WritePin(CTRL_UP_GPIO_Port, CTRL_UP_Pin, GPIO_PIN_SET); \
     HAL_GPIO_WritePin(CTRL_DWN_GPIO_Port, CTRL_DWN_Pin, GPIO_PIN_SET); \
 } while(0)
-
-#define IS_CHANNEL_FOUND() (((uint8_t*)freq.frequency->data)[0] > FREQ_CH_MIN && \
-                            ((uint8_t*)freq.frequency->data)[0] < FREQ_CH_MAX)
 
 #define LED_ON()    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2)
 #define LED_OFF()   HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_2)
@@ -41,6 +40,33 @@ State_t lastState = IDLE;
 static inline void idle_state(void);
 static inline void search_up_state(void);
 static inline void search_down_state(void);
+
+/**
+ * @brief Checks if the number of out-of-range values in a circular buffer exceeds a given threshold.
+ *
+ * @param buffer Pointer to the circular buffer.
+ * @param min_val Minimum acceptable value (inclusive).
+ * @param max_val Maximum acceptable value (inclusive).
+ * @param threshold Maximum allowed number of out-of-range elements.
+ * @return bool Returns false if the number of out-of-range elements exceeds the threshold, true otherwise.
+ */
+bool CheckForChannel(const CircularBuffer *buffer, uint8_t min_val, uint8_t max_val, uint8_t threshold) {
+    uint8_t out_of_range_count = 0;
+    uint8_t *data = (uint8_t *)buffer->data;
+
+    uint8_t index = buffer->head;
+    while (index != buffer->tail) {
+        if (data[index] < min_val || data[index] > max_val) {
+            out_of_range_count++;
+            if (out_of_range_count > threshold) {
+                return false;
+            }
+        }
+        index = (index + 1) % buffer->size;
+    }
+
+    return true;
+}
 
 /**
  * @brief Initialize the FSM and ensure all outputs are off.
@@ -86,7 +112,7 @@ static inline void search_up_state(void) {
 		lastTick = HAL_GetTick();
 	}
 
-	if (IS_CHANNEL_FOUND()) currentState = ALARM;
+	if (CheckForChannel(freq.frequency,FREQ_CH_MIN,FREQ_CH_MAX,FREQ_CH_THR)) currentState = ALARM;
 	else if (IS_PRESS(BTN_M_GPIO_Port, BTN_M_Pin)) currentState = IDLE;
 }
 
@@ -108,7 +134,7 @@ static inline void search_down_state(void) {
 		lastTick = HAL_GetTick();
 	}
 
-	if (IS_CHANNEL_FOUND()) currentState = ALARM;
+	if (CheckForChannel(freq.frequency,FREQ_CH_MIN,FREQ_CH_MAX,FREQ_CH_THR)) currentState = ALARM;
 	else if (IS_PRESS(BTN_P_GPIO_Port, BTN_P_Pin)) currentState = IDLE;
 }
 

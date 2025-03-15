@@ -8,7 +8,7 @@ FrequencyMeter_t freq;
 CircularBuffer cb;
 
 void USER_Init() {
-	cb.size=5;
+	cb.size=20;
 	cb.item_size = sizeof(uint8_t);
 	CB_Init(&cb);
 
