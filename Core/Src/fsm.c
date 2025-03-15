@@ -10,9 +10,9 @@
 extern FrequencyMeter_t freq;
 extern TIM_HandleTypeDef htim1;
 
-#define CHANNEL_DELAY 1000
-#define FREQ_CH_MIN 10
-#define FREQ_CH_MAX 20
+#define CHANNEL_DELAY 250
+#define FREQ_CH_MIN 14
+#define FREQ_CH_MAX 18
 #define FREQ_CH_THR 10
 
 #define IS_PRESS(GPIOx, GPIO_Pin)   ((GPIOx->IDR & GPIO_Pin) ? 0 : 1)
@@ -53,16 +53,13 @@ static inline void search_down_state(void);
 bool CheckForChannel(const CircularBuffer *buffer, uint8_t min_val, uint8_t max_val, uint8_t threshold) {
     uint8_t out_of_range_count = 0;
     uint8_t *data = (uint8_t *)buffer->data;
-
-    uint8_t index = buffer->head;
-    while (index != buffer->tail) {
-        if (data[index] < min_val || data[index] > max_val) {
+    for (uint8_t i=0;i<buffer->size;i++){
+        if (data[i] < min_val || data[i] > max_val) {
             out_of_range_count++;
             if (out_of_range_count > threshold) {
                 return false;
             }
         }
-        index = (index + 1) % buffer->size;
     }
 
     return true;
