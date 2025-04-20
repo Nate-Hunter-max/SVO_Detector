@@ -8,14 +8,14 @@ FrequencyMeter_t freq;
 CircularBuffer cb;
 
 void USER_Init() {
-	cb.size=150;
+	cb.size=70;
 	cb.item_size = sizeof(uint8_t);
 	CB_Init(&cb);
 
 	freq.hadc=&hadc;
 	freq.adcChannel = ADC_CHANNEL_0;
 	freq.htim=&htim3;
-	freq.threshold_high = 180;
+	freq.threshold_high = 150;
 	freq.threshold_low = 100;
 	freq.frequency = &cb;
 	freq._timeout = 1e3;

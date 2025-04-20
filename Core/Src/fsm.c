@@ -15,8 +15,8 @@ extern TIM_HandleTypeDef htim1;
  * @brief Timing parameters for channel search pulses
  * @{
  */
-#define PULSE_PERIOD_MS      1000  ///< Time between search pulses in milliseconds
-#define PULSE_DURATION_MS    500   ///< Duration of each search pulse in milliseconds
+#define PULSE_PERIOD_MS      700  ///< Time between search pulses in milliseconds
+#define PULSE_DURATION_MS    150   ///< Duration of each search pulse in milliseconds
 /** @} */
 
 /**
@@ -35,7 +35,7 @@ extern TIM_HandleTypeDef htim1;
  */
 #define FREQ_CH_MIN 14       ///< Minimum valid channel frequency value
 #define FREQ_CH_MAX 18       ///< Maximum valid channel frequency value
-#define FREQ_CH_THR 10       ///< Maximum allowed out-of-range samples before channel is considered invalid
+#define FREQ_CH_THR 5       ///< Maximum allowed out-of-range samples before channel is considered invalid
 /** @} */
 
 /**
@@ -80,6 +80,7 @@ typedef struct {
     State_t current;            /**< Current FSM state */
     State_t last;               /**< Last processed FSM state */
     uint32_t pulseTick;         /**< Timestamp for pulse generation */
+    uint32_t alarmCoolDown;		/**< Cooldown for Alarm system to avoid loop in SERCH-ALARM */
     bool pulseActive;           /**< Flag indicating active pulse */
     uint32_t alarmTick;         /**< Timestamp for alarm blinking */
     bool alarmOn;               /**< Alarm blinking state flag */
@@ -188,7 +189,7 @@ static void handle_search(GPIO_TypeDef* port, uint16_t pin, bool opposite_presse
         fsm.pulseActive = false;
     }
 
-    if (CheckForChannel(freq.frequency, FREQ_CH_MIN, FREQ_CH_MAX, FREQ_CH_THR)) {
+    if (now >= fsm.alarmCoolDown && CheckForChannel(freq.frequency, FREQ_CH_MIN, FREQ_CH_MAX, FREQ_CH_THR)) {
         fsm.current = ALARM;
     } else if (opposite_pressed) {
         fsm.current = IDLE;
@@ -249,7 +250,16 @@ static void alarm_state(void) {
     }
 
     if (IsButtonPressed(BTN_P_GPIO_Port, BTN_P_Pin) || IsButtonPressed(BTN_M_GPIO_Port, BTN_M_Pin)) {
-        fsm.current = IDLE;
+        LED_OFF();
+        BUZZER_OFF();
+        fsm.alarmOn = false;
+        fsm.alarmCoolDown = now + 2*PULSE_PERIOD_MS;
+        // Start appropriate search on button press
+        if (IsButtonPressed(BTN_P_GPIO_Port, BTN_P_Pin)) {
+            fsm.current = SEARCH_UP;
+        } else if (IsButtonPressed(BTN_M_GPIO_Port, BTN_M_Pin)) {
+            fsm.current = SEARCH_DOWN;
+        }
     }
 }
 

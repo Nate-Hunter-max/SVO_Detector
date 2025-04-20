@@ -65,7 +65,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 
 		if ((current_time - _freq_meter->_last_time) > _freq_meter->_timeout) {
 			value = 0;
-			CB_Add(_freq_meter->frequency, (void*) &value);
+			//CB_Add(_freq_meter->frequency, (void*) &value);
 		}
 
 		HAL_ADC_Start_IT(hadc);
